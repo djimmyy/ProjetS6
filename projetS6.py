@@ -7,6 +7,12 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import csv
 
+from selenium.webdriver.chrome.options import Options
+
+options = Options()
+options.add_argument("--headless")
+options.add_argument("--disable-gpu")
+options.add_argument("--no-sandbox")
 
 
 
@@ -21,16 +27,15 @@ def getsoup(url):
     return BeautifulSoup(driver.page_source, "html.parser")
 
 def getsoup_produit(url):
-  
     driver.get(url)
-    time.sleep(2) 
-    
-  
-    driver.execute_script("window.scrollTo(0, 800);") 
-    time.sleep(1)
-    driver.execute_script("window.scrollTo(0, 1500);")
-    time.sleep(2) 
-    
+
+    # attendre que les notes critics soient chargées
+    WebDriverWait(driver, 10).until(
+        EC.presence_of_element_located(
+            (By.CSS_SELECTOR, "div[data-rbf='wine-critic-slide']")
+        )
+    )
+
     return BeautifulSoup(driver.page_source, "html.parser")
 
 def liens_vins(soup):
