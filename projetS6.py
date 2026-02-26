@@ -6,7 +6,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import csv
-
+import pandas as pd
 from selenium.webdriver.chrome.options import Options
 
 options = Options()
@@ -137,6 +137,27 @@ def scrape_bordeaux():
             except Exception as e:
                 print("Erreur page:", e)
                 break
-            
-scrape_bordeaux()
+
 driver.quit()
+
+vins = pd.read_csv("vins_bordeaux.csv", encoding="utf-8")
+print(vins.head())
+print(vins.info())
+print(vins.describe())
+#pas sur que ce soit utile car qd on scrape je crois on prend que les vins qui ont une appellation, mais a voirs
+vins = vins.dropna(subset=["Appellation"])
+print(len(vins))
+#vins.to_csv("vins_bordeaux_clean.csv",encoding="utf-8")
+
+vins["Prix"] = vins["Prix"].str.replace("\u202f", "", regex=False)
+
+vins["Prix"] = pd.to_numeric(vins["Prix"], errors="coerce")
+vins["Robert"] = pd.to_numeric(vins["Robert"], errors="coerce")
+vins["Robinson"] = pd.to_numeric(vins["Robinson"], errors="coerce")
+vins["Suckling"] = pd.to_numeric(vins["Suckling"], errors="coerce")
+
+print(vins.info())
+vins = vins.dropna()
+print(len(vins))
+vins.to_csv("vins_bordeaux_clean_prix.csv",encoding="utf-8")
+print(vins.head())
