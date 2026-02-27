@@ -149,15 +149,34 @@ vins = vins.dropna(subset=["Appellation"])
 print(len(vins))
 #vins.to_csv("vins_bordeaux_clean.csv",encoding="utf-8")
 
-vins["Prix"] = vins["Prix"].str.replace("\u202f", "", regex=False)
+def to_ascii(chaine):
+    if isinstance(chaine, str):
+        return chaine.encode("ascii", "ignore").decode("ascii")
+    return chaine
 
-vins["Prix"] = pd.to_numeric(vins["Prix"], errors="coerce")
-vins["Robert"] = pd.to_numeric(vins["Robert"], errors="coerce")
-vins["Robinson"] = pd.to_numeric(vins["Robinson"], errors="coerce")
-vins["Suckling"] = pd.to_numeric(vins["Suckling"], errors="coerce")
+vins["Prix"] = vins["Prix"].apply(to_ascii)
+vins["Robert"] = vins["Robert"].apply(to_ascii)
+vins["Robinson"] = vins["Robinson"].apply(to_ascii)
+vins["Suckling"] = vins["Suckling"].apply(to_ascii)
 
 print(vins.info())
-vins = vins.dropna()
 print(len(vins))
-vins.to_csv("vins_bordeaux_clean_prix.csv",encoding="utf-8")
+#vins.to_csv("vins_bordeaux_clean_prix.csv",encoding="utf-8")
 print(vins.head())
+
+def average_notes_appellation(avg, colonne):
+    avg[colonne] = pd.to_numeric(avg[colonne], errors="coerce")
+    resultat = (
+        avg.groupby("Appellation")[colonne].mean()
+   )
+    return resultat
+
+avg_Ro = average_notes_appellation(vins, "Robert")
+avg_Rob = average_notes_appellation(vins, "Robinson")
+avg_Su = average_notes_appellation(vins, "Suckling")
+print("-------------------------------------------")
+print(avg_Ro.head())
+print("-------------------------------------------")
+print(avg_Rob.head())
+print("-------------------------------------------")
+print(avg_Su.head())
