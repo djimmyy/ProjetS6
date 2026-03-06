@@ -183,3 +183,25 @@ print("-------------------------------------------")
 print(avg_Rob.head())
 print("-------------------------------------------")
 print(avg_Su.head())
+
+print("-------------------------------------------")
+print ("--------------------------------------------")
+print(vins.isna().sum())
+
+avg_Ro = avg_Ro.rename(columns={"Robert": "Robert_moy"})
+avg_Rob = avg_Rob.rename(columns={"Robinson": "Robinson_moy"})
+avg_Su = avg_Su.rename(columns={"Suckling": "Suckling_moy"})
+
+vins = vins.merge(avg_Ro, on="Appellation", how="left")
+vins = vins.merge(avg_Rob, on="Appellation", how="left")
+vins = vins.merge(avg_Su, on="Appellation", how="left")
+
+vins["Robert"] = vins["Robert"].fillna(vins["Robert_moy"])
+vins["Robinson"] = vins["Robinson"].fillna(vins["Robinson_moy"])
+vins["Suckling"] = vins["Suckling"].fillna(vins["Suckling_moy"])
+
+vins = vins.drop(columns=["Robert_moy","Robinson_moy","Suckling_moy"])
+
+vins = pd.get_dummies(vins, columns=["Appellation"], prefix="Appellation",dtype=int)
+vins = vins.round(2)
+vins.to_csv("vins_bordeaux_clean.csv",index=False,encoding="utf-8")
