@@ -142,8 +142,11 @@ driver.quit()
 
 vins = pd.read_csv("vins_bordeaux.csv", encoding="utf-8")
 print(vins.head())
+print("--------------------------------------------")
 print(vins.info())
+print("--------------------------------------------")
 print(vins.describe())
+print("--------------------------------------------")
 #pas sur que ce soit utile car qd on scrape je crois on prend que les vins qui ont une appellation, mais a voirs
 vins = vins.dropna(subset=["Appellation"])
 print(len(vins))
@@ -158,17 +161,17 @@ vins["Prix"] = vins["Prix"].apply(to_ascii)
 vins["Robert"] = vins["Robert"].apply(to_ascii)
 vins["Robinson"] = vins["Robinson"].apply(to_ascii)
 vins["Suckling"] = vins["Suckling"].apply(to_ascii)
-
+print("--------------------------------------------")
 print(vins.info())
+print("--------------------------------------------")
 print(len(vins))
 #vins.to_csv("vins_bordeaux_clean_prix.csv",encoding="utf-8")
+print("--------------------------------------------")
 print(vins.head())
 
 def average_notes_appellation(avg, colonne):
     avg[colonne] = pd.to_numeric(avg[colonne], errors="coerce")
-    resultat = (
-        avg.groupby("Appellation")[colonne].mean()
-   )
+    resultat = avg.groupby("Appellation")[colonne].mean().fillna(0).reset_index()
     return resultat
 
 avg_Ro = average_notes_appellation(vins, "Robert")
