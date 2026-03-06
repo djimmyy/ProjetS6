@@ -57,7 +57,7 @@ def prix(soup):
         return texte.replace(",", ".")
     return "None"
     
-def appelation(soup):
+def appellation(soup):
     table = soup.find("table")
     if table:
         rows = table.find_all("tr")
@@ -96,7 +96,7 @@ def robinson(soup):
 
 def informations(soup):
     return ",".join([
-        str(appelation(soup)),
+        str(appellation(soup)),
         str(parker(soup)),
         str(robinson(soup)),
         str(suckling(soup)),
