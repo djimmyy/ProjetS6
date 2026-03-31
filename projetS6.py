@@ -154,9 +154,13 @@ def to_ascii(chaine):
     return chaine
 
 vins["Prix"] = vins["Prix"].apply(to_ascii)
+vins["Prix"] = pd.to_numeric(vins["Prix"], errors="coerce")
 vins["Robert"] = vins["Robert"].apply(to_ascii)
+vins["Robert"] = pd.to_numeric(vins["Robert"], errors="coerce")
 vins["Robinson"] = vins["Robinson"].apply(to_ascii)
+vins["Robinson"] = pd.to_numeric(vins["Robinson"], errors="coerce")
 vins["Suckling"] = vins["Suckling"].apply(to_ascii)
+vins["Suckling"] = pd.to_numeric(vins["Suckling"], errors="coerce")
 print("--------------------------------------------")
 print(vins.info())
 print("--------------------------------------------")
@@ -201,3 +205,38 @@ vins = vins.drop(columns=["Robert_moy","Robinson_moy","Suckling_moy"])
 vins = pd.get_dummies(vins, columns=["Appellation"], prefix="Appellation",dtype=int)
 vins = vins.round(2)
 vins.to_csv("vins_bordeaux_clean.csv",index=False,encoding="utf-8")
+
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.metrics import mean_squared_error, r2_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
+X = vins.drop(columns=["Prix"])
+y = vins["Prix"]
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=49)
+
+model3 = KNeighborsRegressor(n_neighbors=4)
+model3.fit(X_train, y_train)
+
+print("Model KNN 4 Score:", model3.score(X_test, y_test))
+
+model32 = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=4))
+model32.fit(X_train, y_train)
+print("Model KNN 4 (StandardScaler) Score:", model32.score(X_test, y_test))
+
+model33 = make_pipeline(MinMaxScaler(), KNeighborsRegressor(n_neighbors=4))
+model33.fit(X_train, y_train)
+print("Model KNN 4 (MinMaxScaler) Score:", model33.score(X_test, y_test))
+# en faisant le pretraitement il y a une legere amelioration du score, mais pas significative, les scores obtenus ne sont pas satisfaisants.
+model34 = KNeighborsRegressor(n_neighbors=5)
+model34.fit(X_train, y_train)
+print("Model KNN 5 Score:", model34.score(X_test, y_test))
+model35 = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=5))
+model35.fit(X_train, y_train)
+print("Model KNN 5 (StandardScaler) Score:", model35.score(X_test, y_test))
+model36 = make_pipeline(MinMaxScaler(), KNeighborsRegressor(n_neighbors=5))
+model36.fit(X_train, y_train)
+print("Model KNN 5 (MinMaxScaler) Score:", model36.score(X_test, y_test))
+#l'amelioration n'est pas significative, les scores obtenus ne sont pas satisfaisants, le score est meme pire avec le standard scaler,
