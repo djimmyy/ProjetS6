@@ -8,10 +8,19 @@ from selenium.webdriver.support import expected_conditions as EC
 import csv
 import pandas as pd
 from selenium.webdriver.chrome.options import Options
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import cross_val_score, train_test_split
+from sklearn.metrics import r2_score
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.metrics import mean_squared_error, r2_score
 
 
-
-
+"""
 driver = webdriver.Chrome()
 
 def getsoup(url):
@@ -205,17 +214,144 @@ vins = vins.drop(columns=["Robert_moy","Robinson_moy","Suckling_moy"])
 vins = pd.get_dummies(vins, columns=["Appellation"], prefix="Appellation",dtype=int)
 vins = vins.round(2)
 vins.to_csv("vins_bordeaux_clean.csv",index=False,encoding="utf-8")
-
-from sklearn.model_selection import train_test_split
-from sklearn.neighbors import KNeighborsRegressor
-from sklearn.metrics import mean_squared_error, r2_score
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import MinMaxScaler, StandardScaler
-
-X = vins.drop(columns=["Prix"])
-y = vins["Prix"]
-
+"""
+#Q15:
+data = pd.read_csv("vins_bordeaux_clean.csv", encoding="utf-8")
+X = data.drop(columns=["Prix"])
+y = data["Prix"]
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.25, random_state=49)
+"""print("X_train: " + str(X_train.shape) + ", y_train: " + str(y_train.shape))
+print("X_test: " + str(X_test.shape) + ", y_test: " + str(y_test.shape))"""
+
+#Q16/Q17: LR
+model_lr = LinearRegression()
+model_lr.fit(X_train, y_train)
+y_pred_lr = model_lr.predict(X_test)
+r2_lr = r2_score(y_test, y_pred_lr)
+
+"""plt.figure(figsize=(5, 5))
+plt.scatter(y_pred_lr, y_test, alpha=0.5, color='blue')
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+plt.title("RL = " + str(r2_lr))
+plt.grid(True)
+plt.show()"""
+
+#Q18:
+pipeline_mm = make_pipeline(MinMaxScaler(), LinearRegression())
+pipeline_mm.fit(X_train, y_train)
+y_pred_mm = pipeline_mm.predict(X_test)
+r2_mm = r2_score(y_test, y_pred_mm)
+
+pipeline_std = make_pipeline(StandardScaler(), LinearRegression())
+pipeline_std.fit(X_train, y_train)
+y_pred_std = pipeline_std.predict(X_test)
+r2_std = r2_score(y_test, y_pred_std)
+
+print("----------------------------------")
+print("RL:" + str(r2_lr))
+print("MinMaxScaler: " + str(r2_mm))
+print("standardisation: " + str(r2_std))
+
+fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+axes[0].scatter(y_pred_lr, y_test, alpha=0.5, color='red', s=50)
+axes[0].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--')
+axes[0].set_title("LR : " + str(r2_lr))
+axes[0].grid(True)
+
+axes[1].scatter(y_pred_mm, y_test, alpha=0.5, color='green', s=50)
+axes[1].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--')
+axes[1].set_title("MinMax : " + str(r2_mm))
+axes[1].grid(True)
+
+axes[2].scatter(y_pred_std, y_test, alpha=0.5, color='blue', s=50)
+axes[2].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--')
+axes[2].set_title("standardisation : " + str(r2_std))
+axes[2].grid(True)
+plt.tight_layout()
+plt.show()
+
+# Q19:
+print("----------------------------------")
+print("prix: Min " + str(y.min()) + ", Max " + str(y.max()) )
+y_log = np.log(y)
+print("Log prix: Min " + str(y_log.min()) + ", Max " + str(y_log.max()) )
+
+# Q20: RL sur log
+y_log_train, y_log_test = np.log(y_train), np.log(y_test)
+
+pipeline_log_base = LinearRegression()
+pipeline_log_base.fit(X_train, y_log_train)
+prix_pred_log_base = np.exp(pipeline_log_base.predict(X_test))
+r2_log_base = r2_score(y_test, prix_pred_log_base)
+
+pipeline_log_norm = make_pipeline(MinMaxScaler(), LinearRegression())
+pipeline_log_norm.fit(X_train, y_log_train)
+prix_pred_log_norm = np.exp(pipeline_log_norm.predict(X_test))
+r2_log_norm = r2_score(y_test, prix_pred_log_norm)
+
+pipeline_log_std = make_pipeline(StandardScaler(), LinearRegression())
+pipeline_log_std.fit(X_train, y_log_train)
+prix_pred_log_std = np.exp(pipeline_log_std.predict(X_test))
+r2_log_std = r2_score(y_test, prix_pred_log_std)
+
+print("----------------------------------")
+print("RL: " + str(r2_log_base))
+print("Normalisation: " + str(r2_log_norm))
+print("Standardisation: " + str(r2_log_std))
+print("----------------------------------")
+
+
+best_r2_log = max(r2_log_base, r2_log_norm, r2_log_std)
+best_pred_log = [prix_pred_log_base, prix_pred_log_norm, prix_pred_log_std][[r2_log_base, r2_log_norm, r2_log_std].index(best_r2_log)]
+best_name = ["RL", "Normalisation", "Standardisation"][[r2_log_base, r2_log_norm, r2_log_std].index(best_r2_log)]
+
+plt.figure(figsize=(6, 6))
+plt.scatter(best_pred_log, y_test, alpha=0.6, color='purple')
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+plt.xlabel('Prédictions')
+plt.ylabel('Prix')
+plt.title("Best methode: " + best_name + "  " + str(best_r2_log))
+plt.grid(True)
+plt.show()
+
+"Points plus alignés grâce au log."
+
+#Q21: AD
+
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.metrics import r2_score
+
+max_depth = {3, 4, 5}
+res_simple,res_norm,res_std = {},{},{}
+
+for depth in max_depth:
+    model_dt = DecisionTreeRegressor(max_depth=depth, random_state=49)
+    model_dt.fit(X_train, y_train)
+    res_simple[depth] = r2_score(y_test, model_dt.predict(X_test))
+
+    pipeline_norm = make_pipeline(MinMaxScaler(), DecisionTreeRegressor(max_depth=depth, random_state=49))
+    pipeline_norm.fit(X_train, y_train)
+    res_norm[depth] = r2_score(y_test, pipeline_norm.predict(X_test))
+    
+    pipeline_std = make_pipeline(StandardScaler(), DecisionTreeRegressor(max_depth=depth, random_state=49))
+    pipeline_std.fit(X_train, y_train)
+    res_std[depth] = r2_score(y_test, pipeline_std.predict(X_test))
+
+
+for depth in max_depth:
+    print("AD " + str(depth) + ": " + str(res_simple[depth]))
+print("----------------------------------")
+
+for depth in max_depth:
+    print("AD " + str(depth) + " + StandardScaler: " + str(res_std[depth]))
+print("----------------------------------")
+
+for depth in max_depth:
+    print("AD " + str(depth) + " + MinMaxScaler: " + str(res_norm[depth]))
+print("----------------------------------")
+
 
 model3 = KNeighborsRegressor(n_neighbors=4)
 model3.fit(X_train, y_train)
