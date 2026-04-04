@@ -272,27 +272,30 @@ plt.show()
 
 # Q19:
 print("----------------------------------")
-print("prix: Min " + str(y.min()) + ", Max " + str(y.max()) )
+print("prix: Min " + str(y.min()) + " Max " + str(y.max()) )
+
 y_log = np.log(y)
-print("Log prix: Min " + str(y_log.min()) + ", Max " + str(y_log.max()) )
+X_train, X_test, y_log_train, y_log_test = train_test_split(X, y_log, test_size=0.25, random_state=49)
+
+print("Log prix: Min " + str(y_log_train.min()) + ", Max " + str(y_log_train.max()) )
 
 # Q20: RL sur log
-y_log_train, y_log_test = np.log(y_train), np.log(y_test)
-
 pipeline_log_base = LinearRegression()
 pipeline_log_base.fit(X_train, y_log_train)
-prix_pred_log_base = np.exp(pipeline_log_base.predict(X_test))
-r2_log_base = r2_score(y_test, prix_pred_log_base)
+
+prix_pred_log_base = pipeline_log_base.predict(X_test)
+r2_log_base = r2_score(y_log_test, prix_pred_log_base)
 
 pipeline_log_norm = make_pipeline(MinMaxScaler(), LinearRegression())
 pipeline_log_norm.fit(X_train, y_log_train)
-prix_pred_log_norm = np.exp(pipeline_log_norm.predict(X_test))
-r2_log_norm = r2_score(y_test, prix_pred_log_norm)
+prix_pred_log_norm = pipeline_log_norm.predict(X_test)
+r2_log_norm = r2_score(y_log_test, prix_pred_log_norm)
 
 pipeline_log_std = make_pipeline(StandardScaler(), LinearRegression())
 pipeline_log_std.fit(X_train, y_log_train)
-prix_pred_log_std = np.exp(pipeline_log_std.predict(X_test))
-r2_log_std = r2_score(y_test, prix_pred_log_std)
+prix_pred_log_std = pipeline_log_std.predict(X_test)
+r2_log_std = r2_score(y_log_test, prix_pred_log_std)
+
 
 print("----------------------------------")
 print("RL: " + str(r2_log_base))
@@ -306,38 +309,31 @@ best_pred_log = [prix_pred_log_base, prix_pred_log_norm, prix_pred_log_std][[r2_
 best_name = ["RL", "Normalisation", "Standardisation"][[r2_log_base, r2_log_norm, r2_log_std].index(best_r2_log)]
 
 plt.figure(figsize=(6, 6))
-plt.scatter(best_pred_log, y_test, alpha=0.6, color='purple')
-plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
+plt.scatter(best_pred_log, y_log_test, alpha=0.6, color='purple', s=50)
+plt.plot([y_log_test.min(), y_log_test.max()], [y_log_test.min(), y_log_test.max()], 'k--')
 plt.xlabel('Prédictions')
 plt.ylabel('Prix')
-plt.title("Best methode: " + best_name + "  " + str(best_r2_log))
-plt.grid(True)
+plt.title("best methode: " + best_name + " " + str(best_r2_log))
+plt.grid(True, alpha=0.3)
+plt.tight_layout()
 plt.show()
 
-"Points plus alignés grâce au log."
-
 #Q21: AD
-
-from sklearn.tree import DecisionTreeRegressor
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-from sklearn.metrics import r2_score
-
 max_depth = {3, 4, 5}
 res_simple,res_norm,res_std = {},{},{}
 
 for depth in max_depth:
     model_dt = DecisionTreeRegressor(max_depth=depth, random_state=49)
-    model_dt.fit(X_train, y_train)
-    res_simple[depth] = r2_score(y_test, model_dt.predict(X_test))
+    model_dt.fit(X_train, y_log_train)
+    res_simple[depth] = r2_score(y_log_test, model_dt.predict(X_test))
 
     pipeline_norm = make_pipeline(MinMaxScaler(), DecisionTreeRegressor(max_depth=depth, random_state=49))
-    pipeline_norm.fit(X_train, y_train)
-    res_norm[depth] = r2_score(y_test, pipeline_norm.predict(X_test))
+    pipeline_norm.fit(X_train, y_log_train)
+    res_norm[depth] = r2_score(y_log_test, pipeline_norm.predict(X_test))
     
     pipeline_std = make_pipeline(StandardScaler(), DecisionTreeRegressor(max_depth=depth, random_state=49))
-    pipeline_std.fit(X_train, y_train)
-    res_std[depth] = r2_score(y_test, pipeline_std.predict(X_test))
+    pipeline_std.fit(X_train, y_log_train)
+    res_std[depth] = r2_score(y_log_test, pipeline_std.predict(X_test))
 
 
 for depth in max_depth:
@@ -352,27 +348,23 @@ for depth in max_depth:
     print("AD " + str(depth) + " + MinMaxScaler: " + str(res_norm[depth]))
 print("----------------------------------")
 
-
 model3 = KNeighborsRegressor(n_neighbors=4)
-model3.fit(X_train, y_train)
+model3.fit(X_train, y_log_train)
 
-print("Model KNN 4 Score:", model3.score(X_test, y_test))
-
+print("Model KNN 4 Score:", model3.score(X_test, y_log_test))
 model32 = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=4))
-model32.fit(X_train, y_train)
-print("Model KNN 4 (StandardScaler) Score:", model32.score(X_test, y_test))
+model32.fit(X_train, y_log_train)
+print("Model KNN 4 (StandardScaler) Score:", model32.score(X_test, y_log_test))
 
 model33 = make_pipeline(MinMaxScaler(), KNeighborsRegressor(n_neighbors=4))
-model33.fit(X_train, y_train)
-print("Model KNN 4 (MinMaxScaler) Score:", model33.score(X_test, y_test))
-# en faisant le pretraitement il y a une legere amelioration du score, mais pas significative, les scores obtenus ne sont pas satisfaisants.
+model33.fit(X_train, y_log_train)
+print("Model KNN 4 (MinMaxScaler) Score:", model33.score(X_test, y_log_test))
 model34 = KNeighborsRegressor(n_neighbors=5)
-model34.fit(X_train, y_train)
-print("Model KNN 5 Score:", model34.score(X_test, y_test))
+model34.fit(X_train, y_log_train)
+print("Model KNN 5 Score:", model34.score(X_test, y_log_test))
 model35 = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=5))
-model35.fit(X_train, y_train)
-print("Model KNN 5 (StandardScaler) Score:", model35.score(X_test, y_test))
+model35.fit(X_train, y_log_train)
+print("Model KNN 5 (StandardScaler) Score:", model35.score(X_test, y_log_test))
 model36 = make_pipeline(MinMaxScaler(), KNeighborsRegressor(n_neighbors=5))
-model36.fit(X_train, y_train)
-print("Model KNN 5 (MinMaxScaler) Score:", model36.score(X_test, y_test))
-#l'amelioration n'est pas significative, les scores obtenus ne sont pas satisfaisants, le score est meme pire avec le standard scaler,
+model36.fit(X_train, y_log_train)
+print("Model KNN 5 (MinMaxScaler) Score:", model36.score(X_test, y_log_test))
