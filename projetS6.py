@@ -228,7 +228,6 @@ model_lr = LinearRegression()
 model_lr.fit(X_train, y_train)
 y_pred_lr = model_lr.predict(X_test)
 r2_lr = r2_score(y_test, y_pred_lr)
-"score tres faible sans au nombre de features et des donnees"
 
 """plt.figure(figsize=(5, 5))
 plt.scatter(y_pred_lr, y_test, alpha=0.5, color='blue')
@@ -243,20 +242,15 @@ pipeline_mm.fit(X_train, y_train)
 y_pred_mm = pipeline_mm.predict(X_test)
 r2_mm = r2_score(y_test, y_pred_mm)
 
-
 pipeline_std = make_pipeline(StandardScaler(), LinearRegression())
 pipeline_std.fit(X_train, y_train)
 y_pred_std = pipeline_std.predict(X_test)
 r2_std = r2_score(y_test, y_pred_std)
-"la meme chose"
 
-
-
-print("| Methode              | r²          |")
-print("|----------------------|-------------|")
-print("| LR                   | " + str(r2_lr) + "  |")
-print("| Normalisation + LR   | " + str(r2_mm) + "  |")
-print("| Standardisation + LR | " + str(r2_std) + " |")
+print("----------------------------------")
+print("RL:" + str(r2_lr))
+print("MinMaxScaler: " + str(r2_mm))
+print("standardisation: " + str(r2_std))
 
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 axes[0].scatter(y_pred_lr, y_test, alpha=0.5, color='red', s=50)
@@ -284,8 +278,6 @@ y_log = np.log(y)
 X_train, X_test, y_log_train, y_log_test = train_test_split(X, y_log, test_size=0.25, random_state=49)
 
 print("Log prix: Min " + str(y_log_train.min()) + ", Max " + str(y_log_train.max()) )
-"c'est plus centre donc peut etre de meilleur performance"
-
 
 # Q20: RL sur log
 pipeline_log_base = LinearRegression()
@@ -305,23 +297,23 @@ prix_pred_log_std = pipeline_log_std.predict(X_test)
 r2_log_std = r2_score(y_log_test, prix_pred_log_std)
 
 
-
-print("| Methode              | r²          |")
-print("|----------------------|-------------|")
-print("| LR                   | " + str(r2_log_base) + "  |")
-print("| Normalisation        | " + str(r2_log_norm) + "  |")
-print("| Standardisation      | " + str(r2_log_std) + " |")
-print(" ")
-"de meilleure resultat mais pas suffisant"
+print("----------------------------------")
+print("RL: " + str(r2_log_base))
+print("Normalisation: " + str(r2_log_norm))
+print("Standardisation: " + str(r2_log_std))
+print("----------------------------------")
 
 
 best_r2_log = max(r2_log_base, r2_log_norm, r2_log_std)
+best_pred_log = [prix_pred_log_base, prix_pred_log_norm, prix_pred_log_std][[r2_log_base, r2_log_norm, r2_log_std].index(best_r2_log)]
+best_name = ["RL", "Normalisation", "Standardisation"][[r2_log_base, r2_log_norm, r2_log_std].index(best_r2_log)]
+
 plt.figure(figsize=(6, 6))
-plt.scatter(prix_pred_log_base, y_log_test, alpha=0.6, color='purple', s=50)
+plt.scatter(best_pred_log, y_log_test, alpha=0.6, color='purple', s=50)
 plt.plot([y_log_test.min(), y_log_test.max()], [y_log_test.min(), y_log_test.max()], 'k--')
 plt.xlabel('Prédictions')
 plt.ylabel('Prix')
-plt.title("best methode: RL" + str(best_r2_log))
+plt.title("best methode: " + best_name + " " + str(best_r2_log))
 plt.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.show()
@@ -343,23 +335,22 @@ for depth in max_depth:
     pipeline_std.fit(X_train, y_log_train)
     res_std[depth] = r2_score(y_log_test, pipeline_std.predict(X_test))
 
-"pas de nette amelioration par rapport a la regression lineaire"
-print("| Methode                  | r²          |")
-print("|--------------------------|-------------|")
-for depth in max_depth:
-    print("| AD " + str(depth) + ": " + str(res_simple[depth]))
-print("|----------------------------------")
-    
-for depth in max_depth:
-    print("| AD " + str(depth) + " + StandardScaler: " + str(res_std[depth]))
-print("|----------------------------------")
 
 for depth in max_depth:
-    print("| AD " + str(depth) + " + MinMaxScaler: " + str(res_norm[depth]))
-print("|----------------------------------")
+    print("AD " + str(depth) + ": " + str(res_simple[depth]))
+print("----------------------------------")
+
+for depth in max_depth:
+    print("AD " + str(depth) + " + StandardScaler: " + str(res_std[depth]))
+print("----------------------------------")
+
+for depth in max_depth:
+    print("AD " + str(depth) + " + MinMaxScaler: " + str(res_norm[depth]))
+print("----------------------------------")
 
 model3 = KNeighborsRegressor(n_neighbors=4)
 model3.fit(X_train, y_log_train)
+
 print("Model KNN 4 Score:", model3.score(X_test, y_log_test))
 model32 = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=4))
 model32.fit(X_train, y_log_train)
@@ -376,12 +367,4 @@ model35.fit(X_train, y_log_train)
 print("Model KNN 5 (StandardScaler) Score:", model35.score(X_test, y_log_test))
 model36 = make_pipeline(MinMaxScaler(), KNeighborsRegressor(n_neighbors=5))
 model36.fit(X_train, y_log_train)
-
 print("Model KNN 5 (MinMaxScaler) Score:", model36.score(X_test, y_log_test))
-
-import seaborn as sns
-corr = data.corr()
-plt.figure(figsize=(16, 16))
-sns.heatmap(corr, annot=True)
-plt.title("Matrice de Corrélation", pad=20)
-plt.show()
