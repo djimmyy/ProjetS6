@@ -1,3 +1,5 @@
+from xml.parsers.expat import model
+
 from bs4 import BeautifulSoup
 from selenium import webdriver
 import time
@@ -18,7 +20,7 @@ import numpy as np
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import mean_squared_error, r2_score
-
+from sklearn.decomposition import PCA
 
 """
 driver = webdriver.Chrome()
@@ -226,25 +228,25 @@ print("X_test: " + str(X_test.shape) + ", y_test: " + str(y_test.shape))"""
 #Q16/Q17: LR
 model_lr = LinearRegression()
 model_lr.fit(X_train, y_train)
-y_pred_lr = model_lr.predict(X_test)
-r2_lr = r2_score(y_test, y_pred_lr)
+estim_LR = model_lr.predict(X_test)
+r2_lr = r2_score(y_test, estim_LR)
 
-"""plt.figure(figsize=(5, 5))
-plt.scatter(y_pred_lr, y_test, alpha=0.5, color='blue')
+plt.figure(figsize=(5, 5))
+plt.scatter(estim_LR, y_test, alpha=0.5, color='blue')
 plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--')
 plt.title("RL = " + str(r2_lr))
 plt.grid(True)
-plt.show()"""
+plt.show()
 
 #Q18:
-pipeline_mm = make_pipeline(MinMaxScaler(), LinearRegression())
-pipeline_mm.fit(X_train, y_train)
-y_pred_mm = pipeline_mm.predict(X_test)
+LR_mm = make_pipeline(MinMaxScaler(), LinearRegression())
+LR_mm.fit(X_train, y_train)
+y_pred_mm = LR_mm.predict(X_test)
 r2_mm = r2_score(y_test, y_pred_mm)
 
-pipeline_std = make_pipeline(StandardScaler(), LinearRegression())
-pipeline_std.fit(X_train, y_train)
-y_pred_std = pipeline_std.predict(X_test)
+LR_std = make_pipeline(StandardScaler(), LinearRegression())
+LR_std.fit(X_train, y_train)
+y_pred_std = LR_std.predict(X_test)
 r2_std = r2_score(y_test, y_pred_std)
 
 print("----------------------------------")
@@ -253,7 +255,7 @@ print("MinMaxScaler: " + str(r2_mm))
 print("standardisation: " + str(r2_std))
 
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-axes[0].scatter(y_pred_lr, y_test, alpha=0.5, color='red', s=50)
+axes[0].scatter(estim_LR, y_test, alpha=0.5, color='red', s=50)
 axes[0].plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'k--')
 axes[0].set_title("LR : " + str(r2_lr))
 axes[0].grid(True)
@@ -277,36 +279,55 @@ print("prix: Min " + str(y.min()) + " Max " + str(y.max()) )
 y_log = np.log(y)
 X_train, X_test, y_log_train, y_log_test = train_test_split(X, y_log, test_size=0.25, random_state=49)
 
-print("Log prix: Min " + str(y_log_train.min()) + ", Max " + str(y_log_train.max()) )
+print("Log prix: Min " + str(y_log.min()) + ", Max " + str(y_log.max()) )
 
 # Q20: RL sur log
-pipeline_log_base = LinearRegression()
-pipeline_log_base.fit(X_train, y_log_train)
+LR_log = LinearRegression()
+LR_log.fit(X_train, y_log_train)
 
-prix_pred_log_base = pipeline_log_base.predict(X_test)
+prix_pred_log_base = LR_log.predict(X_test)
 r2_log_base = r2_score(y_log_test, prix_pred_log_base)
 
-pipeline_log_norm = make_pipeline(MinMaxScaler(), LinearRegression())
-pipeline_log_norm.fit(X_train, y_log_train)
-prix_pred_log_norm = pipeline_log_norm.predict(X_test)
-r2_log_norm = r2_score(y_log_test, prix_pred_log_norm)
+LR_log_mm = make_pipeline(MinMaxScaler(), LinearRegression())
+LR_log_mm.fit(X_train, y_log_train)
+prix_pred_log_mm = LR_log_mm.predict(X_test)
+r2_log_mm = r2_score(y_log_test, prix_pred_log_mm)
 
-pipeline_log_std = make_pipeline(StandardScaler(), LinearRegression())
-pipeline_log_std.fit(X_train, y_log_train)
-prix_pred_log_std = pipeline_log_std.predict(X_test)
+LR_log_std = make_pipeline(StandardScaler(), LinearRegression())
+LR_log_std.fit(X_train, y_log_train)
+prix_pred_log_std = LR_log_std.predict(X_test)
 r2_log_std = r2_score(y_log_test, prix_pred_log_std)
 
 
 print("----------------------------------")
 print("RL: " + str(r2_log_base))
-print("Normalisation: " + str(r2_log_norm))
+print("MinMaxScaler: " + str(r2_log_mm))
 print("Standardisation: " + str(r2_log_std))
+
+
 print("----------------------------------")
+print("Tableau LR :")
+
+table_lr = pd.DataFrame({
+    "Méthode": [
+        "LR",
+        "Normalisation + LR",
+        "Standardisation + LR"
+    ],
+    "R²": [
+        r2_log_base,
+        r2_log_mm,
+        r2_log_std
+    ]
+})
 
 
-best_r2_log = max(r2_log_base, r2_log_norm, r2_log_std)
-best_pred_log = [prix_pred_log_base, prix_pred_log_norm, prix_pred_log_std][[r2_log_base, r2_log_norm, r2_log_std].index(best_r2_log)]
-best_name = ["RL", "Normalisation", "Standardisation"][[r2_log_base, r2_log_norm, r2_log_std].index(best_r2_log)]
+print(table_lr.to_string(index=False))
+
+
+best_r2_log = max(r2_log_base, r2_log_mm, r2_log_std)
+best_pred_log = [prix_pred_log_base, prix_pred_log_mm, prix_pred_log_std][[r2_log_base, r2_log_mm, r2_log_std].index(best_r2_log)]
+best_name = ["RL", "MinMaxScaler", "Standardisation"][[r2_log_base, r2_log_mm, r2_log_std].index(best_r2_log)]
 
 plt.figure(figsize=(6, 6))
 plt.scatter(best_pred_log, y_log_test, alpha=0.6, color='purple', s=50)
@@ -318,53 +339,125 @@ plt.grid(True, alpha=0.3)
 plt.tight_layout()
 plt.show()
 
-#Q21: AD
-max_depth = {3, 4, 5}
-res_simple,res_norm,res_std = {},{},{}
+#Q21: ADD
 
-for depth in max_depth:
-    model_dt = DecisionTreeRegressor(max_depth=depth, random_state=49)
-    model_dt.fit(X_train, y_log_train)
-    res_simple[depth] = r2_score(y_log_test, model_dt.predict(X_test))
+depths = [3, 4, 5]
+cv_scores = {}
 
-    pipeline_norm = make_pipeline(MinMaxScaler(), DecisionTreeRegressor(max_depth=depth, random_state=49))
-    pipeline_norm.fit(X_train, y_log_train)
-    res_norm[depth] = r2_score(y_log_test, pipeline_norm.predict(X_test))
-    
-    pipeline_std = make_pipeline(StandardScaler(), DecisionTreeRegressor(max_depth=depth, random_state=49))
-    pipeline_std.fit(X_train, y_log_train)
-    res_std[depth] = r2_score(y_log_test, pipeline_std.predict(X_test))
+for depth in depths:
+    model = DecisionTreeRegressor(max_depth=depth, random_state=49)
+    scores = cross_val_score(model, X_train, y_log_train, cv=5, scoring="r2")
+    cv_scores[depth] = scores.mean()
+
+print(cv_scores)
+
+best_depth = max(cv_scores, key=cv_scores.get)
+print("Best depth:", best_depth)
+
+best_model_AD = DecisionTreeRegressor(max_depth=best_depth, random_state=49)
+best_model_AD.fit(X_train, y_log_train)
+
+test_score = best_model_AD.score(X_test, y_log_test)
+print("Test score:", test_score)
+
+AD_mm = make_pipeline(
+    MinMaxScaler(),
+    DecisionTreeRegressor(max_depth=best_depth, random_state=49)
+)
+
+AD_std = make_pipeline(
+    StandardScaler(),
+    DecisionTreeRegressor(max_depth=best_depth, random_state=49)
+)
+
+AD_mm.fit(X_train, y_log_train)
+AD_std.fit(X_train, y_log_train)
+
+table_ad = pd.DataFrame({
+    "Méthode": [
+        "AD",
+        "Normalisation + AD",
+        "Standardisation + AD"
+    ],
+    "R²": [
+        best_model_AD.score(X_test, y_log_test),
+        AD_mm.score(X_test, y_log_test),
+        AD_std.score(X_test, y_log_test)
+    ]
+})
 
 
-for depth in max_depth:
-    print("AD " + str(depth) + ": " + str(res_simple[depth]))
-print("----------------------------------")
+print(table_ad.to_string(index=False))
 
-for depth in max_depth:
-    print("AD " + str(depth) + " + StandardScaler: " + str(res_std[depth]))
-print("----------------------------------")
+print("---------------------------------------------")
+#Q22: KNN
+KNN4 = KNeighborsRegressor(n_neighbors=4)
+KNN4.fit(X_train, y_log_train)
+print("Model KNN 4 Score:", KNN4.score(X_test, y_log_test))
 
-for depth in max_depth:
-    print("AD " + str(depth) + " + MinMaxScaler: " + str(res_norm[depth]))
-print("----------------------------------")
+KNN4_std = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=4))
+KNN4_std.fit(X_train, y_log_train)
+print("Model KNN 4 (StandardScaler) Score:", KNN4_std.score(X_test, y_log_test))
 
-model3 = KNeighborsRegressor(n_neighbors=4)
-model3.fit(X_train, y_log_train)
+KNN4_mm = make_pipeline(MinMaxScaler(), KNeighborsRegressor(n_neighbors=4))
+KNN4_mm.fit(X_train, y_log_train)
+print("Model KNN 4 (MinMaxScaler) Score:", KNN4_mm.score(X_test, y_log_test))
 
-print("Model KNN 4 Score:", model3.score(X_test, y_log_test))
-model32 = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=4))
-model32.fit(X_train, y_log_train)
-print("Model KNN 4 (StandardScaler) Score:", model32.score(X_test, y_log_test))
+KNN5 = KNeighborsRegressor(n_neighbors=5)
+KNN5.fit(X_train, y_log_train)
+print("Model KNN 5 Score:", KNN5.score(X_test, y_log_test))
+print("---------------------------------------------")
+KNN5_std = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=5))
+KNN5_std.fit(X_train, y_log_train)
+print("Model KNN 5 (StandardScaler) Score:", KNN5_std.score(X_test, y_log_test))
 
-model33 = make_pipeline(MinMaxScaler(), KNeighborsRegressor(n_neighbors=4))
-model33.fit(X_train, y_log_train)
-print("Model KNN 4 (MinMaxScaler) Score:", model33.score(X_test, y_log_test))
-model34 = KNeighborsRegressor(n_neighbors=5)
-model34.fit(X_train, y_log_train)
-print("Model KNN 5 Score:", model34.score(X_test, y_log_test))
-model35 = make_pipeline(StandardScaler(), KNeighborsRegressor(n_neighbors=5))
-model35.fit(X_train, y_log_train)
-print("Model KNN 5 (StandardScaler) Score:", model35.score(X_test, y_log_test))
-model36 = make_pipeline(MinMaxScaler(), KNeighborsRegressor(n_neighbors=5))
-model36.fit(X_train, y_log_train)
-print("Model KNN 5 (MinMaxScaler) Score:", model36.score(X_test, y_log_test))
+KNN5_mm = make_pipeline(MinMaxScaler(), KNeighborsRegressor(n_neighbors=5))
+KNN5_mm.fit(X_train, y_log_train)
+print("Model KNN 5 (MinMaxScaler) Score:", KNN5_mm.score(X_test, y_log_test))
+
+print("---------------------------------------------")
+print("Tableau de comparaison des modèles :")
+table_knn = pd.DataFrame({
+    "Méthode": [
+        "KNN (k=4)",
+        "Normalisation + KNN (k=4)",
+        "Standardisation + KNN (k=4)",
+        "KNN (k=5)",
+        "Normalisation + KNN (k=5)",
+        "Standardisation + KNN (k=5)"
+    ],
+    "R²": [
+        KNN4.score(X_test, y_log_test),
+        KNN4_mm.score(X_test, y_log_test),
+        KNN4_std.score(X_test, y_log_test),
+        KNN5.score(X_test, y_log_test),
+        KNN5_mm.score(X_test, y_log_test),
+        KNN5_std.score(X_test, y_log_test)
+    ]
+})
+
+
+print(table_knn.to_string(index=False))
+
+print("---------------------------------------------")
+tableau_final = pd.DataFrame({
+    "Méthode": ["LR", "AD", "KNN"],
+    "R²": [
+        max(r2_log_base, r2_log_mm, r2_log_std),
+        max(best_model_AD.score(X_test, y_log_test), AD_mm.score(X_test, y_log_test), AD_std.score(X_test, y_log_test)),
+        max(KNN4.score(X_test, y_log_test), KNN4_mm.score(X_test, y_log_test), KNN5_std.score(X_test, y_log_test))
+    ]
+})
+print(tableau_final.to_string(index=False))
+
+pca = PCA(n_components=5)
+pca.fit(X_train)
+X_train_pca = pca.transform(X_train)
+
+print("Explained variance ratio:")
+print(pca.explained_variance_ratio_.sum())
+print("Oui c'est suffisant car la proportion d'information > 0.85")
+
+best_model_AD.fit(X_train_pca, y_log_train)
+
+print("AD5 PCA Score:", best_model_AD.score(pca.transform(X_test), y_log_test))
