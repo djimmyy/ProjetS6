@@ -21,7 +21,7 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.decomposition import PCA
-
+from tabulate import tabulate
 """
 driver = webdriver.Chrome()
 
@@ -251,12 +251,11 @@ y_pred_std = LR_std.predict(X_test)
 r2_std = r2_score(y_test, y_pred_std)
 
 
-print("| Methode              | r²          |")
-print("|----------------------|-------------|")
-print("| LR                   | " + str(r2_lr) + "  |")
-print("| Normalisation + LR   | " + str(r2_mm) + "  |")
-print("| Standardisation + LR | " + str(r2_std) + " |")
-print("")
+tableau_LR_brut = pd.DataFrame({
+    "Méthode": ["LR", "Normalisation + LR", "Standardisation + LR"],
+    "R²": [r2_lr, r2_mm, r2_std]
+})
+print(tabulate(tableau_LR_brut, headers='keys', tablefmt='pretty', showindex=False))
 
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 axes[0].scatter(estim_LR, y_test, alpha=0.5, color='red', s=50)
@@ -308,13 +307,12 @@ r2_log_std = r2_score(y_log_test, prix_pred_log_std)
 "pas de nette amelioration par rapport a la regression lineaire"
 
 
-print("| Methode              | r²          |")
-print("|----------------------|-------------|")
-print("| LR                   | " + str(r2_log_base) + "  |")
-print("| Normalisation        | " + str(r2_log_mm) + "  |")
-print("| Standardisation      | " + str(r2_log_std) + " |")
-print(" ")
+tableau_LR = pd.DataFrame({
+    "Méthode": ["LR", "Normalisation + LR", "Standardisation + LR"],
+    "R²": [r2_log_base, r2_log_mm, r2_log_std]
+})
 
+print(tabulate(tableau_LR, headers='keys', tablefmt='pretty', showindex=False))
 
 best_r2_log = max(r2_log_base, r2_log_mm, r2_log_std)
 best_pred_log = [prix_pred_log_base, prix_pred_log_mm, prix_pred_log_std][[r2_log_base, r2_log_mm, r2_log_std].index(best_r2_log)]
@@ -363,7 +361,7 @@ AD_std = make_pipeline(
 
 AD_mm.fit(X_train, y_log_train)
 AD_std.fit(X_train, y_log_train)
-
+print("Tableau de comparaison des modèles AD:")
 table_ad = pd.DataFrame({
     "Méthode": [
         "AD",
@@ -378,7 +376,7 @@ table_ad = pd.DataFrame({
 })
 
 
-print(table_ad.to_string(index=False))
+print(tabulate(table_ad, headers='keys', tablefmt='pretty', showindex=False))
 
 print("---------------------------------------------")
 #Q22: KNN
@@ -407,7 +405,7 @@ KNN5_mm.fit(X_train, y_log_train)
 print("Model KNN 5 (MinMaxScaler) Score:", KNN5_mm.score(X_test, y_log_test))
 
 print("---------------------------------------------")
-print("Tableau de comparaison des modèles :")
+print("Tableau de comparaison des modèles KNN:")
 
 table_knn = pd.DataFrame({
     "Méthode": [
@@ -429,18 +427,19 @@ table_knn = pd.DataFrame({
 })
 
 
-print(table_knn.to_string(index=False))
+print(tabulate(table_knn, headers='keys', tablefmt='pretty', showindex=False))
 
 print("---------------------------------------------")
+print ("Tableau de comparaison final :")
 tableau_final = pd.DataFrame({
     "Méthode": ["LR", "AD", "KNN"],
     "R²": [
         max(r2_log_base, r2_log_mm, r2_log_std),
         max(best_model_AD.score(X_test, y_log_test), AD_mm.score(X_test, y_log_test), AD_std.score(X_test, y_log_test)),
-        max(KNN4.score(X_test, y_log_test), KNN4_mm.score(X_test, y_log_test), KNN5_std.score(X_test, y_log_test))
+        max(KNN4.score(X_test, y_log_test), KNN4_mm.score(X_test, y_log_test), KNN4_std.score(X_test, y_log_test),KNN5.score(X_test, y_log_test),KNN5_mm.score(X_test, y_log_test), KNN5_std.score(X_test, y_log_test))
     ]
 })
-print(tableau_final.to_string(index=False))
+print(tabulate(tableau_final, headers='keys', tablefmt='pretty', showindex=False))
 
 pca = PCA(n_components=5)
 pca.fit(X_train)
@@ -457,7 +456,7 @@ print("AD5 PCA Score:", best_model_AD.score(pca.transform(X_test), y_log_test))
 import seaborn as sns
 corr = data.corr()
 print(data.shape[1])
-plt.figure(figsize=(31,31))
+plt.figure(figsize=(40,40))
 sns.heatmap(corr, annot=True)
 plt.title("Matrice de Corrélation", pad=20)
 plt.show()
@@ -465,15 +464,44 @@ plt.show()
 attribut = corr["Prix"].abs().sort_values(ascending=False)[1:6]
 print(attribut)
 
-Beast5 = ["Robert", "Robinson", "Suckling", "Appellation_Pauillac", "Appellation_Haut-Médoc"]
-X_best5 = data[Beast5]
+Best5 = attribut.index.tolist()
+X_best5 = data[Best5]
 y = data["Prix"]
-X_train, X_test, y_train, y_test = train_test_split(X_best5, y, test_size=0.25, random_state=49)
+X_train, X_test, y_train, y_test = train_test_split(X_best5, y_log, test_size=0.25, random_state=49)
 
-lr_best5 = LinearRegression()
-lr_best5.fit(X_train, y_train)
-estim_best5 = lr_best5.predict(X_test)
+
+best_model_AD.fit(X_train, y_train)
+estim_best5 = best_model_AD.predict(X_test)
 score_best5 = r2_score(y_test, estim_best5)
 print(score_best5)
 "score plus eleve que le modele de base avec toutes les features"
 "je trouve plus efficace moins de donnees mais plus pertinentes"
+
+
+
+from sklearn.ensemble import GradientBoostingRegressor
+
+grad = GradientBoostingRegressor(random_state=0)
+grad.fit(X_train, y_log_train)
+
+grad_mm = make_pipeline(MinMaxScaler(), GradientBoostingRegressor(random_state=0))
+grad_mm.fit(X_train, y_log_train)
+grad_std = make_pipeline(StandardScaler(), GradientBoostingRegressor(random_state=0))
+grad_std.fit(X_train, y_log_train)
+
+
+table_knn = pd.DataFrame({
+    "Méthode": [
+        "Gradient Boosting",
+        "Normalisation + Gradient Boosting",
+        "Standardisation + Gradient Boosting"
+    ],
+    "R²": [
+        grad.score(X_test, y_log_test),
+        grad_mm.score(X_test, y_log_test),
+        grad_std.score(X_test, y_log_test),
+    ]
+})
+print(tabulate(table_knn, headers='keys', tablefmt='pretty', showindex=False))
+
+print("On constate que le Gradient Boosting est plus performant que les autres modèles testés, par contre le pretraitement n'apporte pas d'amélioration significative dans ce cas.")
